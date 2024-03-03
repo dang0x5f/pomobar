@@ -8,14 +8,14 @@
 #include <sys/stat.h>
 
 #define RUNNING 1
-#define DELIM ","
 #define TITLE "POMODORO"
 #define LOCKFILE "/tmp/swixm.lockfile"
 
 typedef enum { START, PRINT, TERMINATE, END } ForkCase_t;
 
+void itoa(int, char *);
 void timetoa(int, char *);
-void reverse_time(char *);
+void reverse(char *);
 void sig_handler(int);
 void fork_failed(void);
 void fork_handler(ForkCase_t);
@@ -29,6 +29,8 @@ int main(int argc, char *argv[]){
     int seconds, pid, fd;
     double difference;
     time_t now, future;
+    char delim = ',';
+    char pid_str[10];
     char current_time[10]; 
 
     if(argc < 2 || (seconds = 60 * atoi(argv[1])) <= 0){
@@ -44,6 +46,7 @@ int main(int argc, char *argv[]){
     }
 
     pid = getpid();
+    itoa(pid, pid_str);
     printf("pid : %d \n", pid);
 
     time(&now);
@@ -66,6 +69,17 @@ int main(int argc, char *argv[]){
         /* printf("%.0f \n", difference); */
         timetoa(difference, current_time);
         printf("%s \n", current_time);
+        if((fd = open(LOCKFILE, O_WRONLY|O_TRUNC)) == -1){
+            fprintf(stderr, "lock file exists. one instance may already be running \n");
+            exit(1);
+        }
+        else{
+            write(fd, pid_str, sizeof(pid_str));        // TODO: writes,but junk data also in file
+            /* write(fd, pid_str, sizeof(pid_str)); */
+            write(fd, &delim, sizeof(delim));
+            write(fd, current_time, sizeof(current_time));
+            close(fd);
+        }
 
         if(difference <= 0)
             break;
@@ -104,6 +118,17 @@ void fork_handler(ForkCase_t x){
     }
 }
 
+void itoa(int nbr, char *arr){
+    int i = 0;
+
+    do{
+        arr[i++] = (nbr % 10) + '0';
+    }while((nbr /= 10) != 0);
+
+    arr[i] = '\0';
+    reverse(arr);
+}
+
 void timetoa(int time_left, char *buffer){
     int i = 0, extra_zero = 0;
     int m = time_left / 60;
@@ -127,10 +152,10 @@ void timetoa(int time_left, char *buffer){
 
     buffer[i] = '\0';
 
-    reverse_time(buffer);    
+    reverse(buffer);    
 }
 
-void reverse_time(char *b){
+void reverse(char *b){
     int i, j, c;
 
     for(i = 0, j = strlen(b)-1; i < j; i++, j--){
@@ -140,6 +165,7 @@ void reverse_time(char *b){
     }
 }
 
+/* TODO: add interrupt lockfile clean up, otherwise lockfile sticks around with ^C */
 void sig_handler(int sig){
     switch(sig){
         case SIGTERM:
