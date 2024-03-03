@@ -2,11 +2,15 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #define RUNNING 1
+#define DELIM ","
 #define TITLE "POMODORO"
+#define LOCKFILE "/tmp/swixm.lockfile"
 
 typedef enum { START, PRINT, TERMINATE, END } ForkCase_t;
 
@@ -22,7 +26,7 @@ int main(int argc, char *argv[]){
     /* TODO: math to print timing in notifications & lock file */
     /* TODO: add 5 minute break */
 
-    int seconds, pid;
+    int seconds, pid, fd;
     double difference;
     time_t now, future;
     char current_time[10]; 
@@ -31,6 +35,13 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "usage: %s mins \n", argv[0]);
         exit(1);
     }
+    if((fd = open(LOCKFILE, O_WRONLY|O_CREAT|O_EXCL, S_IRWXU)) == -1){
+        fprintf(stderr, "lock file exists. one instance may already be running \n");
+        exit(1);
+    }
+    else{
+        close(fd);
+    }
 
     pid = getpid();
     printf("pid : %d \n", pid);
@@ -38,6 +49,13 @@ int main(int argc, char *argv[]){
     time(&now);
     future = now + seconds;
     signal(SIGTERM, sig_handler);
+
+    //timetoa(seconds, current_time);  // TODO: + current_time buffer to herbe message
+    /* int fd = open(LOCKFILE, O_WRONLY|O_CREAT|O_EXCL, S_IRWXU); */
+    /* write(fd, &pid, sizeof(pid)); */
+    /* write(fd, DELIM, sizeof(DELIM)); */
+    /* write(fd, current_time, strlen(current_time)); */
+    /* close(fd); */
 
     fork_handler(START);
     while(RUNNING){
@@ -52,6 +70,7 @@ int main(int argc, char *argv[]){
         if(difference <= 0)
             break;
     }
+    remove(LOCKFILE); 
     fork_handler(END);
     return(0);
 }
@@ -124,6 +143,7 @@ void reverse_time(char *b){
 void sig_handler(int sig){
     switch(sig){
         case SIGTERM:
+            remove(LOCKFILE); 
             fork_handler(TERMINATE);
             exit(0);
         default:
