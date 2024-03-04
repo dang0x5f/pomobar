@@ -21,8 +21,6 @@ void fork_failed(void);
 void fork_handler(ForkCase_t);
 
 int main(int argc, char *argv[]){
-    /* TODO: file locking, open() */ 
-    /* TODO: lock file content -> pid:seconds */
     /* TODO: math to print timing in notifications & lock file */
     /* TODO: add 5 minute break */
 
@@ -74,10 +72,9 @@ int main(int argc, char *argv[]){
             exit(1);
         }
         else{
-            write(fd, pid_str, sizeof(pid_str));        // TODO: writes,but junk data also in file
-            /* write(fd, pid_str, sizeof(pid_str)); */
+            write(fd, pid_str, sizeof(char) * strlen(pid_str));
             write(fd, &delim, sizeof(delim));
-            write(fd, current_time, sizeof(current_time));
+            write(fd, current_time, sizeof(char) * strlen(current_time));
             close(fd);
         }
 
