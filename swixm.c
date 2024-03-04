@@ -19,12 +19,12 @@ void reverse(char *);
 void sig_handler(int);
 void fork_failed(void);
 void fork_handler(ForkCase_t);
+void write_to_lockfile(int, char *, char *, char *);
 
 int main(int argc, char *argv[]){
-    /* TODO: math to print timing in notifications & lock file */
     /* TODO: add 5 minute break */
-
-    int seconds, quarter, pid, fd;
+    /* TODO: + current_time buffer to herbe message */
+    int seconds, quarter, fd;
     double difference;
     time_t now, future;
     char delim = ',';
@@ -41,44 +41,38 @@ int main(int argc, char *argv[]){
         exit(1);
     }
     else{
+        time(&now);
+        future = now + seconds;
+        difference = difftime(future, now);  
+
+        itoa(getpid(), pid_str);
+        timetoa(difference, current_time);
+
+        write_to_lockfile(fd, pid_str, &delim, current_time);
+
         close(fd);
     }
 
-    pid = getpid();
-    itoa(pid, pid_str);
-    /* printf("pid : %d \n", pid); */
-    quarter = seconds / 4;
-    timetoa(quarter, quarter_time);
-
-    time(&now);
-    future = now + seconds;
     signal(SIGTERM, sig_handler);
     signal(SIGINT, sig_handler);
-
-    //timetoa(seconds, current_time);  // TODO: + current_time buffer to herbe message
-    /* int fd = open(LOCKFILE, O_WRONLY|O_CREAT|O_EXCL, S_IRWXU); */
-    /* write(fd, &pid, sizeof(pid)); */
-    /* write(fd, DELIM, sizeof(DELIM)); */
-    /* write(fd, current_time, strlen(current_time)); */
-    /* close(fd); */
+    quarter = seconds / 4;
+    timetoa(quarter, quarter_time);
 
     fork_handler(START);
     while(RUNNING){
         sleep(1);
         now += 1;
 
-        difference = difftime(future, now);  // TODO: necessary? or is sleep(1)+now+1 enuf?
-        /* printf("%.0f \n", difference); */
+        difference = difftime(future, now);  
         timetoa(difference, current_time);
-        printf("%s \n", current_time);
+        /* printf("%.0f \n", difference); */
+        /* printf("%s \n", current_time); */
         if((fd = open(LOCKFILE, O_WRONLY|O_TRUNC)) == -1){
             fprintf(stderr, "lock file exists. one instance may already be running \n");
             exit(1);
         }
         else{
-            write(fd, pid_str, sizeof(char) * strlen(pid_str));
-            write(fd, &delim, sizeof(delim));
-            write(fd, current_time, sizeof(char) * strlen(current_time));
+            write_to_lockfile(fd, pid_str, &delim, current_time);
             close(fd);
         }
 
@@ -100,7 +94,7 @@ void fork_handler(ForkCase_t x){
         case START:
             buffer = "Time Starting";
             break;
-        case WARNING: // TODO: print warning
+        case WARNING: 
             buffer = "Ending Soon";
             break;
         case TERMINATE:
@@ -138,7 +132,6 @@ void timetoa(int time_left, char *buffer){
     int m = time_left / 60;
     int s = time_left % 60;
 
-    /* printf("%d : %d \n", m, s); */
     extra_zero = (s < 10 ? 1 : 0);
 
     do{
@@ -147,7 +140,6 @@ void timetoa(int time_left, char *buffer){
 
     if(extra_zero)
         buffer[i++] = '0';
-
     buffer[i++] = ':';
 
     do{
@@ -155,7 +147,6 @@ void timetoa(int time_left, char *buffer){
     }while((m /= 10) != 0);
 
     buffer[i] = '\0';
-
     reverse(buffer);    
 }
 
@@ -169,7 +160,12 @@ void reverse(char *b){
     }
 }
 
-/* TODO: add interrupt lockfile clean up, otherwise lockfile sticks around with ^C */
+void write_to_lockfile(int fd, char *pid_str, char *delim, char *current_time){
+    write(fd, pid_str, sizeof(char) * strlen(pid_str));
+    write(fd, delim, sizeof(char));
+    write(fd, current_time, sizeof(char) * strlen(current_time));
+}
+
 void sig_handler(int sig){
     switch(sig){
         case SIGTERM:
