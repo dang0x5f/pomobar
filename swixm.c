@@ -11,7 +11,7 @@
 #define TITLE "POMODORO"
 #define LOCKFILE "/tmp/swixm.lockfile"
 
-typedef enum { START, PRINT, TERMINATE, END } ForkCase_t;
+typedef enum { START, WARNING, TERMINATE, END } ForkCase_t;
 
 void itoa(int, char *);
 void timetoa(int, char *);
@@ -24,12 +24,13 @@ int main(int argc, char *argv[]){
     /* TODO: math to print timing in notifications & lock file */
     /* TODO: add 5 minute break */
 
-    int seconds, pid, fd;
+    int seconds, quarter, pid, fd;
     double difference;
     time_t now, future;
     char delim = ',';
     char pid_str[10];
     char current_time[10]; 
+    char quarter_time[10];
 
     if(argc < 2 || (seconds = 60 * atoi(argv[1])) <= 0){
         fprintf(stderr, "usage: %s mins \n", argv[0]);
@@ -45,11 +46,14 @@ int main(int argc, char *argv[]){
 
     pid = getpid();
     itoa(pid, pid_str);
-    printf("pid : %d \n", pid);
+    /* printf("pid : %d \n", pid); */
+    quarter = seconds / 4;
+    timetoa(quarter, quarter_time);
 
     time(&now);
     future = now + seconds;
     signal(SIGTERM, sig_handler);
+    signal(SIGINT, sig_handler);
 
     //timetoa(seconds, current_time);  // TODO: + current_time buffer to herbe message
     /* int fd = open(LOCKFILE, O_WRONLY|O_CREAT|O_EXCL, S_IRWXU); */
@@ -80,6 +84,8 @@ int main(int argc, char *argv[]){
 
         if(difference <= 0)
             break;
+        else if(difference == quarter)
+            fork_handler(WARNING);
     }
     remove(LOCKFILE); 
     fork_handler(END);
@@ -89,12 +95,13 @@ int main(int argc, char *argv[]){
 void fork_handler(ForkCase_t x){
     int rc;
     char *buffer;
-
+    
     switch(x){
         case START:
             buffer = "Time Starting";
             break;
-        case PRINT: // TODO: print warning
+        case WARNING: // TODO: print warning
+            buffer = "Ending Soon";
             break;
         case TERMINATE:
             buffer = "Terminated";
@@ -166,6 +173,10 @@ void reverse(char *b){
 void sig_handler(int sig){
     switch(sig){
         case SIGTERM:
+            remove(LOCKFILE); 
+            fork_handler(TERMINATE);
+            exit(0);
+        case SIGINT:
             remove(LOCKFILE); 
             fork_handler(TERMINATE);
             exit(0);
