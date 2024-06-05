@@ -2,7 +2,7 @@
 
 Pomodoro study timer that's designed specifically with xmobar in mind.\
 Requires [herbe](https://github.com/dudik/herbe) for notifications and warnings.\
-Requires some type of script to handle output and ability to kill process with PID.\
+Requires some type of script to handle output and ability to kill process with PID.
 
 ## Usage
 
