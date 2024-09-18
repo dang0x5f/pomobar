@@ -10,16 +10,34 @@
 #define RUNNING 1
 #define TITLE "POMODORO"
 #define LOCKFILE "/tmp/pomo.lockfile"
+#define FIVER (60*5)
 
-typedef enum { START, WARNING, TERMINATE, END } ForkCase_t;
+const char* study_str = "study";
+const char* break_str = "break";
 
+typedef enum { 
+    STUDY, 
+    BREAK 
+} Status_t;
+Status_t status = STUDY; // global..
+
+typedef enum { 
+    STUDYTIME, 
+    WARNING, 
+    BREAKTIME,
+    TERMINATE, 
+    END 
+} ForkCase_t;
+
+Status_t get_status(void);
+void change_status(void);
 void itoa(int, char *);
 void timetoa(int, char *);
 void reverse(char *);
 void sig_handler(int);
 void fork_failed(void);
 void fork_handler(ForkCase_t);
-void write_to_lockfile(int, char *, char *, char *);
+void write_to_lockfile(int,char*,char*,char*,Status_t);
 
 int main(int argc, char *argv[]){
     /* TODO: add 5 minute break */
@@ -48,7 +66,7 @@ int main(int argc, char *argv[]){
         itoa(getpid(), pid_str);
         timetoa(difference, current_time);
 
-        write_to_lockfile(fd, pid_str, &delim, current_time);
+        write_to_lockfile(fd, pid_str, &delim, current_time, get_status());
 
         close(fd);
     }
@@ -58,7 +76,7 @@ int main(int argc, char *argv[]){
     quarter = seconds / 4;
     timetoa(quarter, quarter_time);
 
-    fork_handler(START);
+    fork_handler(STUDYTIME);
     while(RUNNING){
         sleep(1);
         now += 1;
@@ -72,12 +90,27 @@ int main(int argc, char *argv[]){
             exit(1);
         }
         else{
-            write_to_lockfile(fd, pid_str, &delim, current_time);
+            write_to_lockfile(fd, pid_str, &delim, current_time, get_status());
             close(fd);
         }
 
-        if(difference <= 0)
-            break;
+        if(difference <= 0){
+            change_status();
+            time(&now);
+            if(get_status() == STUDY){
+                future = now + seconds;
+                quarter = seconds / 4;
+                fork_handler(STUDYTIME);
+            }else{
+                future = now + FIVER;
+                quarter = FIVER / 4;
+                fork_handler(BREAKTIME);
+            }
+            difference = difftime(future, now);  
+            timetoa(difference, current_time);
+            write_to_lockfile(fd, pid_str, &delim, current_time, get_status());
+            timetoa(quarter, quarter_time);
+        }
         else if(difference == quarter)
             fork_handler(WARNING);
     }
@@ -91,11 +124,14 @@ void fork_handler(ForkCase_t x){
     char *buffer;
     
     switch(x){
-        case START:
+        case STUDYTIME:
             buffer = "Time Starting";
             break;
         case WARNING: 
             buffer = "Ending Soon";
+            break;
+        case BREAKTIME: 
+            buffer = "Break Time";
             break;
         case TERMINATE:
             buffer = "Terminated";
@@ -160,10 +196,15 @@ void reverse(char *b){
     }
 }
 
-void write_to_lockfile(int fd, char *pid_str, char *delim, char *current_time){
+void write_to_lockfile(int fd, char *pid_str, char *delim, char *current_time, Status_t s){
     write(fd, pid_str, sizeof(char) * strlen(pid_str));
     write(fd, delim, sizeof(char));
     write(fd, current_time, sizeof(char) * strlen(current_time));
+    write(fd, delim, sizeof(char));
+    if(s == STUDY)
+        write(fd, study_str, sizeof(char) * strlen(study_str));
+    else
+        write(fd, break_str, sizeof(char) * strlen(break_str));
 }
 
 void sig_handler(int sig){
@@ -185,4 +226,11 @@ void sig_handler(int sig){
 void fork_failed(void){
     fprintf(stderr, "fork failed\n");
     exit(1);
+}
+
+Status_t get_status(){
+    return status;
+}
+void change_status(){
+    status = (status == BREAK) ? STUDY : BREAK;
 }
