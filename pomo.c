@@ -16,6 +16,7 @@
 
 const char* study_str = "study";
 const char* break_str = "break";
+char* pidbuf;
 
 typedef enum { 
     STUDY, 
@@ -36,6 +37,7 @@ void change_status(void);
 void itoa(int, char *);
 void timetoa(int, char *);
 void reverse(char *);
+void extract_pid(char*,char);
 void extract_time(char*,char);
 void sig_handler(int);
 void fork_failed(void);
@@ -74,7 +76,14 @@ int main(int argc, char *argv[]){
                 }
                 exit(0);
             case 'k':
-                break;
+                if(access(LOCKFILE,F_OK) == 0){
+                    pidbuf = malloc(10*sizeof(char));
+                    extract_pid(pidbuf, delim);
+                    kill(atoi(pidbuf),SIGKILL);
+                    remove(LOCKFILE); 
+                    free(pidbuf);
+                }
+                exit(0);
             case 't':
                 break;
             default:
@@ -280,5 +289,22 @@ void extract_time(char *out, char delim)
     }
     *out = '\0';
 
+    fclose(fp);
+}
+
+/* TODO add error handling */
+void extract_pid(char* out, char delim)
+{
+    FILE* fp;
+    char c;
+
+    fp = fopen(LOCKFILE, "r");
+
+    while((c=fgetc(fp)) != delim){
+        *out = c;
+        out++;
+    }
+    *out = '\0';
+    
     fclose(fp);
 }
