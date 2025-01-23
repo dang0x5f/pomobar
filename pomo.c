@@ -9,7 +9,9 @@
 
 #define RUNNING 1
 #define TITLE "POMODORO"
-#define LOCKFILE "/tmp/pomo.lockfile"
+/* TODO change this to delim after replacing old bin */
+#define LOCKFILE "/tmp/swixm.lockfile"
+/* #define LOCKFILE "/tmp/pomo.lockfile" */
 #define FIVER (60*5)
 
 const char* study_str = "study";
@@ -34,6 +36,7 @@ void change_status(void);
 void itoa(int, char *);
 void timetoa(int, char *);
 void reverse(char *);
+void extract_time(char*,char);
 void sig_handler(int);
 void fork_failed(void);
 void fork_handler(ForkCase_t);
@@ -54,12 +57,25 @@ int main(int argc, char *argv[]){
     /*     fprintf(stderr, "usage: %s mins \n", argv[0]); */
     /*     exit(1); */
     /* } */
-
-    while((opt=getopt(argc,argv,"pk")) != -1){
+    if(argc < 2) exit(1);
+    
+    int opt;
+    while((opt=getopt(argc,argv,"pkt:")) != -1){
         switch(opt){
             case 'p':
-                break;
+                if(access(LOCKFILE,F_OK) == 0){
+                    char* buffer = malloc(20*sizeof(char));
+                    extract_time(buffer, delim);
+                    printf("<fc=#8be9fd,#666666> %s </fc> <fc=#666666>",buffer);
+                    free(buffer);
+                }
+                else{
+                    printf("<fc=#666666>");
+                }
+                exit(0);
             case 'k':
+                break;
+            case 't':
                 break;
             default:
                 exit(1);
@@ -246,4 +262,23 @@ Status_t get_status(){
 }
 void change_status(){
     status = (status == BREAK) ? STUDY : BREAK;
+}
+
+void extract_time(char *out, char delim)
+{
+    FILE* fp;
+    char c;
+
+    fp = fopen(LOCKFILE, "r");
+    
+    while((c=fgetc(fp)) != delim);
+
+    /* TODO change this to delim after replacing old bin */
+    while((c=fgetc(fp)) != EOF){
+        *out = c;
+        out++;
+    }
+    *out = '\0';
+
+    fclose(fp);
 }
