@@ -50,10 +50,23 @@ int main(int argc, char *argv[]){
     char current_time[10]; 
     char quarter_time[10];
 
-    if(argc < 2 || (seconds = 60 * atoi(argv[1])) <= 0){
-        fprintf(stderr, "usage: %s mins \n", argv[0]);
-        exit(1);
+    /* if(argc < 2 || (seconds = 60 * atoi(argv[1])) <= 0){ */
+    /*     fprintf(stderr, "usage: %s mins \n", argv[0]); */
+    /*     exit(1); */
+    /* } */
+
+    while((opt=getopt(argc,argv,"pk")) != -1){
+        switch(opt){
+            case 'p':
+                break;
+            case 'k':
+                break;
+            default:
+                exit(1);
+        }
+        
     }
+
     if((fd = open(LOCKFILE, O_WRONLY|O_CREAT|O_EXCL, S_IRWXU)) == -1){
         fprintf(stderr, "lock file exists. one instance may already be running \n");
         exit(1);
