@@ -9,8 +9,6 @@
 
 #define RUNNING 1
 #define TITLE "POMODORO"
-/* TODO change this to delim after replacing old bin */
-/* #define LOCKFILE "/tmp/swixm.lockfile" */
 #define LOCKFILE "/tmp/pomo.lockfile"
 #define FIVER (60*5)
 
@@ -47,8 +45,6 @@ void kill_instance(char);
 void write_to_lockfile(int,char*,char*,char*,Status_t);
 
 int main(int argc, char *argv[]){
-    /* TODO: add 5 minute break */
-    /* TODO: + current_time buffer to herbe message */
     int seconds, quarter, fd;
     double difference;
     time_t now, future;
@@ -57,10 +53,6 @@ int main(int argc, char *argv[]){
     char current_time[10]; 
     char quarter_time[10];
 
-    /* if(argc < 2 || (seconds = 60 * atoi(argv[1])) <= 0){ */
-    /*     fprintf(stderr, "usage: %s mins \n", argv[0]); */
-    /*     exit(1); */
-    /* } */
     if(argc < 2) exit(1);
     
     int opt;
@@ -71,10 +63,10 @@ int main(int argc, char *argv[]){
             case 'k':
                 kill_instance(delim);
             case 't':
-                /* if(check_instance()){ */
-                /*     exit(0); */
-                /* } */
-                /* break; */
+                if( (seconds = 60 * atoi(optarg)) <= 0 ){
+                    exit(1);
+                }
+                break;
             default:
                 exit(1);
         }
@@ -271,8 +263,7 @@ void extract_time(char *out, char delim)
     
     while((c=fgetc(fp)) != delim);
 
-    /* TODO change this to delim after replacing old bin */
-    while((c=fgetc(fp)) != EOF){
+    while((c=fgetc(fp)) != delim){
         *out = c;
         out++;
     }
@@ -281,7 +272,6 @@ void extract_time(char *out, char delim)
     fclose(fp);
 }
 
-/* TODO add error handling */
 void extract_pid(char* out, char delim)
 {
     FILE* fp;
@@ -303,7 +293,7 @@ void printout(char delim)
     if(access(LOCKFILE,F_OK) == 0){
         char* buffer = malloc(20*sizeof(char));
         extract_time(buffer, delim);
-        printf("<fc=#8be9fd,#666666> %s </fc> <fc=#666666>",buffer);
+        printf("<fc=#4cfc49,#333333> %s </fc> <fc=#666666>",buffer);
         free(buffer);
     }
     else{

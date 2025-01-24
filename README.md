@@ -1,16 +1,16 @@
-# pomobar (pomodoro on xmobar)
+# pomo timer
 
-Pomodoro study timer that's designed specifically with xmobar in mind.
-
-Requires [herbe](https://github.com/dudik/herbe) for notifications and warnings.
-
-Requires some type of script to handle output and ability to kill process with PID.
-
+Expects [herbe](https://github.com/dudik/herbe) for notifications and warnings.
 
 ## Usage
 
-`user@host:~ $ pomo 30`
+`user@host:~ $ pomo -t 30`
+- runs a timer for 30 minutes
 
-runs a timer for 30 minutes
+`user@host:~ $ pomo -p`
+- print stdout 
+
+`user@host:~ $ pomo -k`
+- kills
 
 ![timer example](images/pomo.gif)
