@@ -10,8 +10,8 @@
 #define RUNNING 1
 #define TITLE "POMODORO"
 /* TODO change this to delim after replacing old bin */
-#define LOCKFILE "/tmp/swixm.lockfile"
-/* #define LOCKFILE "/tmp/pomo.lockfile" */
+/* #define LOCKFILE "/tmp/swixm.lockfile" */
+#define LOCKFILE "/tmp/pomo.lockfile"
 #define FIVER (60*5)
 
 const char* study_str = "study";
@@ -42,6 +42,8 @@ void extract_time(char*,char);
 void sig_handler(int);
 void fork_failed(void);
 void fork_handler(ForkCase_t);
+void printout(char);
+void kill_instance(char);
 void write_to_lockfile(int,char*,char*,char*,Status_t);
 
 int main(int argc, char *argv[]){
@@ -65,27 +67,14 @@ int main(int argc, char *argv[]){
     while((opt=getopt(argc,argv,"pkt:")) != -1){
         switch(opt){
             case 'p':
-                if(access(LOCKFILE,F_OK) == 0){
-                    char* buffer = malloc(20*sizeof(char));
-                    extract_time(buffer, delim);
-                    printf("<fc=#8be9fd,#666666> %s </fc> <fc=#666666>",buffer);
-                    free(buffer);
-                }
-                else{
-                    printf("<fc=#666666>");
-                }
-                exit(0);
+                printout(delim);
             case 'k':
-                if(access(LOCKFILE,F_OK) == 0){
-                    pidbuf = malloc(10*sizeof(char));
-                    extract_pid(pidbuf, delim);
-                    kill(atoi(pidbuf),SIGKILL);
-                    remove(LOCKFILE); 
-                    free(pidbuf);
-                }
-                exit(0);
+                kill_instance(delim);
             case 't':
-                break;
+                /* if(check_instance()){ */
+                /*     exit(0); */
+                /* } */
+                /* break; */
             default:
                 exit(1);
         }
@@ -307,4 +296,30 @@ void extract_pid(char* out, char delim)
     *out = '\0';
     
     fclose(fp);
+}
+
+void printout(char delim)
+{
+    if(access(LOCKFILE,F_OK) == 0){
+        char* buffer = malloc(20*sizeof(char));
+        extract_time(buffer, delim);
+        printf("<fc=#8be9fd,#666666> %s </fc> <fc=#666666>",buffer);
+        free(buffer);
+    }
+    else{
+        printf("<fc=#666666>");
+    }
+    exit(0);
+}
+
+void kill_instance(char delim)
+{
+    if(access(LOCKFILE,F_OK) == 0){
+        pidbuf = malloc(10*sizeof(char));
+        extract_pid(pidbuf, delim);
+        kill(atoi(pidbuf),SIGKILL);
+        remove(LOCKFILE); 
+        free(pidbuf);
+    }
+    exit(0);
 }
