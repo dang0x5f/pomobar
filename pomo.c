@@ -293,7 +293,7 @@ void printout(char delim)
     if(access(LOCKFILE,F_OK) == 0){
         char* buffer = malloc(20*sizeof(char));
         extract_time(buffer, delim);
-        printf("<fc=#4cfc49,#333333> %s </fc> <fc=#666666>",buffer);
+        printf("<fc=#4cfc49,#333333> %s </fc> <fc=#fffdd0>",buffer);
         free(buffer);
     }
     else{
